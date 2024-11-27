@@ -3,6 +3,11 @@ const { program } = require("commander");
 const fs = require("fs");
 const multer = require("multer");
 
+const swaggerJsdoc = require("swagger-jsdoc");
+const swaggerUi = require("swagger-ui-express");
+
+
+
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -22,6 +27,42 @@ if (!options.host || !options.port || !options.cache) {
 
   process.exit(1);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+const swaggerOptions = {
+  definition: {
+    openapi: "3.0.0", 
+    info: {
+      title: "Notes App API",
+      version: "1.0.0", 
+      description: "API documentation for Notes App",
+    },
+  },
+  apis: ["./index.js"], 
+};
+
+const swaggerDocs = swaggerJsdoc(swaggerOptions);
+
+
+
+
+
+
+
+
+
+
+
 
 let notes = {};
 
@@ -51,6 +92,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(__dirname));
 
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+
 const saveCache = () => {
   fs.writeFileSync(
     options.cache,
@@ -59,6 +103,39 @@ const saveCache = () => {
   console.log(`Cache saved to ${options.cache}`);
 };
 
+
+
+
+
+
+/**
+ * @swagger
+ * /notes/{name}:
+ *   get:
+ *     summary: Get a specific note by name
+ *     description: Retrieve a single note using its name.
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the note to retrieve.
+ *     responses:
+ *       200:
+ *         description: A single note
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 text:
+ *                   type: string
+ *       404:
+ *         description: Note not found
+ */
 app.get("/notes/:name", (req, res) => {
   // console.log("Request params:", req.params);
   // console.log("Request headers:", req.headers);
@@ -66,7 +143,8 @@ app.get("/notes/:name", (req, res) => {
   // const storage = multer.memoryStorage();
   // const upload = multer({ storage: storage });
   const noteName = req.params.name;
-  
+  // console.log('name')
+
   if (notes[noteName]) {
     // res.status(200).json({ text: notes[noteName].note });
     res.status(200).send(notes[noteName].note);
@@ -76,7 +154,27 @@ app.get("/notes/:name", (req, res) => {
 });
 
 
-
+/**
+ * @swagger
+ * /notes:
+ *   get:
+ *     summary: Get all notes
+ *     description: Retrieve all notes stored in the application.
+ *     responses:
+ *       200:
+ *         description: A list of notes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                   text:
+ *                     type: string
+ */
 app.get("/notes", (req, res) => {
   const noteList = Object.keys(notes).map((name) => ({
     name: name,
@@ -89,6 +187,42 @@ app.get("/notes", (req, res) => {
 
 
 
+
+
+
+
+
+
+/**
+ * @swagger
+ * /notes/{name}:
+ *   put:
+ *     summary: Update an existing note
+ *     description: Update a note's text by its name.
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the note to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               text:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Note updated successfully
+ *       400:
+ *         description: Invalid input data
+ *       404:
+ *         description: Note not found
+ */
 app.put("/notes/:name", (req, res) => {
   const noteName = req.params.name;
   const newText = req.body.text;
@@ -102,6 +236,36 @@ app.put("/notes/:name", (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @swagger
+ * /notes/{name}:
+ *   delete:
+ *     summary: Delete a note by name
+ *     description: Remove a note using its name.
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The name of the note to delete.
+ *     responses:
+ *       200:
+ *         description: Note deleted successfully
+ *       404:
+ *         description: Note not found
+ */
 app.delete("/notes/:name", (req, res) => {
   const noteName = req.params.name;
 
@@ -116,6 +280,46 @@ app.delete("/notes/:name", (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+/**
+ * @swagger
+ * /write:
+ *   post:
+ *     summary: Create a new note via form data
+ *     description: Create a new note with a name and text provided in the form data.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/x-www-form-urlencoded:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note_name:
+ *                 type: string
+ *                 description: The name of the note to create.
+ *               note:
+ *                 type: string
+ *                 description: The text content of the note.
+ *               name:
+ *                 type: string
+ *                 description: Alternative name field for the note.
+ *               text:
+ *                 type: string
+ *                 description: Alternative text field for the note.
+ *     responses:
+ *       201:
+ *         description: Note created successfully
+ *       400:
+ *         description: Note with the same name already exists
+ */
 app.post("/write", upload.none(), (req, res) => {
   const noteName = req.body.note_name || req.body.name;
   const noteText = req.body.note || req.body.text;
