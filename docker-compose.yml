@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  app:
+    build: .
+    container_name: bc2024-6-app
+    ports:
+      - "3000:3000"  # Порти для контейнера (з контейнера на хост)
+    volumes:
+      - .:/app  # Важливо для nodemon, щоб перезапускати сервер без перезавантаження контейнера
+      - /app/node_modules  # Ігноруємо node_modules для синхронізації
+    environment:
+      - NODE_ENV=development  # Задаємо середовище для розробки
